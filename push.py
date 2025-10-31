@@ -5,7 +5,6 @@ import requests
 from io import BytesIO
 import os
 from datetime import datetime
-import time
 
 class ImageProcessor:
     def __init__(self, images_folder="temp_images"):
@@ -67,11 +66,11 @@ class ImageProcessor:
                             (positions[i] + x_offset, vertical_margin + y_offset)
                         )
         
-        # Guardar imagen
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        output_path = f"{self.images_folder}/notification_{timestamp}.jpg"
-        background.save(output_path, 'JPEG', quality=95, optimize=True)
-        return output_path
+        # Crear imagen en memoria
+        img_byte_arr = BytesIO()
+        background.save(img_byte_arr, format='JPEG', quality=95)
+        img_byte_arr.seek(0)
+        return img_byte_arr
 
 def main():
     st.title("Generador de Imágenes Push Amazon")
@@ -79,10 +78,6 @@ def main():
 
     # Crear contenedor para el formulario
     with st.form("push_form"):
-        # Campo para email
-        email = st.text_input("Email para recibir la imagen:", 
-                             help="Ingresa tu correo electrónico donde recibirás la imagen")
-        
         # Campos para ASINs
         st.subheader("Ingresa los ASINs de los libros (máximo 3)")
         col1, col2, col3 = st.columns(3)
@@ -104,10 +99,6 @@ def main():
         if not asin1:
             st.error("Por favor, ingresa al menos un ASIN")
             return
-        
-        if not email:
-            st.error("Por favor, ingresa un correo electrónico")
-            return
 
         # Procesar la solicitud
         with st.spinner("Generando imagen..."):
@@ -115,26 +106,24 @@ def main():
             asins = [asin for asin in [asin1, asin2, asin3] if asin.strip()]
             
             try:
-                image_path = processor.create_notification_image(asins)
+                image_data = processor.create_notification_image(asins)
                 
                 # Mostrar la imagen generada
                 st.success("¡Imagen generada exitosamente!")
-                st.image(image_path, caption="Vista previa de la imagen")
+                st.image(image_data, caption="Vista previa de la imagen")
                 
                 # Botón para descargar la imagen
-                with open(image_path, "rb") as file:
-                    btn = st.download_button(
-                        label="Descargar imagen",
-                        data=file,
-                        file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
-                        mime="image/jpeg"
-                    )
-                
-                # Aquí podrías agregar el código para enviar por email
-                st.info(f"Se enviará la imagen al correo: {email}")
+                st.download_button(
+                    label="Descargar imagen",
+                    data=image_data,
+                    file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
+                    mime="image/jpeg"
+                )
                 
             except Exception as e:
                 st.error(f"Error al generar la imagen: {e}")
 
 if __name__ == "__main__":
     main()
+
+    

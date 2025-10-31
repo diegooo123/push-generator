@@ -73,24 +73,22 @@ class ImageProcessor:
         return img_byte_arr
 
 def main():
-    st.title("Generador de Imágenes Push Amazon")
-    st.write("Crea imágenes para push notifications con portadas de libros de Amazon")
+    st.title("Generador de Imágenes Push")
+    st.write("Ingresa 3 ASINs máximo")
 
     # Crear contenedor para el formulario
     with st.form("push_form"):
-        # Campos para ASINs
-        st.subheader("Ingresa los ASINs de los libros (máximo 3)")
         col1, col2, col3 = st.columns(3)
         
         with col1:
             asin1 = st.text_input("ASIN 1:", 
-                                 help="Ingresa el ASIN del primer libro")
+                                 help="Ingresa el primer ASIN")
         with col2:
             asin2 = st.text_input("ASIN 2:", 
-                                 help="Ingresa el ASIN del segundo libro (opcional)")
+                                 help="Ingresa el segundo ASIN (opcional)")
         with col3:
             asin3 = st.text_input("ASIN 3:", 
-                                 help="Ingresa el ASIN del tercer libro (opcional)")
+                                 help="Ingresa el tercer ASIN (opcional)")
 
         # Botón de envío
         submitted = st.form_submit_button("Generar Imagen")
@@ -125,5 +123,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    

@@ -63,7 +63,7 @@ def create_notification_image(asins, background_color='#FFFFFF', final_size=(634
                 
                 y_position = int((final_size[1] - new_height) / 2)
                 
-                backackground.paste(
+                background.paste(
                     book,
                     (positions[i], y_position)
                 )

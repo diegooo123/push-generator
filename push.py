@@ -17,7 +17,7 @@ class ImageProcessor:
                 return Image.open(BytesIO(response.content))
             return None
         except Exception as e:
-            return None
+               return None
 
     def create_notification_image(self, asins, background_color='#FFFFFF', final_size=(634, 300)):
         bg_color = tuple(int(background_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
@@ -72,21 +72,23 @@ class ImageProcessor:
         
         return background
 
-def send_notification(asins, feedback=""):
+def send_discord_notification(asins, feedback=""):
+    webhook_url = st.secrets["discord_webhook"]
+    
+    message = {
+        "content": f"""
+📊 Nuevo uso del Generador de Push
+⏰ Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+📚 ASINs utilizados:
+{' | '.join(asins)}
+
+{f'💭 Feedback: {feedback}' if feedback else ''}
+"""
+    }
+    
     try:
-        st.experimental_memo.send_email(
-            to="ddig@amazon.com",
-            subject="Nuevo uso del Generador de Push",
-            message=f"""
-            Nueva imagen generada:
-            Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-            
-            ASINs utilizados:
-            {'| '.join(asins)}
-            
-            {"Feedback: " + feedback if feedback else "Sin feedback"}
-            """
-        )
+        requests.post(webhook_url, json=message)
     except Exception as e:
         pass
 
@@ -127,7 +129,7 @@ def main():
             file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
             mime="image/jpeg"
         ):
-            send_notification(asins)
+            send_discord_notification(asins)
 
     feedback = st.text_area(
         "Feedback (opcional)",
@@ -136,7 +138,7 @@ def main():
     )
 
     if feedback and st.button("Guardar feedback"):
-        send_notification(asins, feedback)
+        send_discord_notification(asins, feedback)
 
 if __name__ == "__main__":
     main()

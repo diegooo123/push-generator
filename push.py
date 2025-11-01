@@ -6,6 +6,32 @@ import os
 from datetime import datetime
 import pandas as pd
 
+def log_usage(asins, feedback=""):
+    try:
+        # Preparar los datos del registro
+        data = {
+            'Fecha': [datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+            'ASIN1': [asins[0] if len(asins) > 0 else ''],
+            'ASIN2': [asins[1] if len(asins) > 1 else ''],
+            'ASIN3': [asins[2] if len(asins) > 2 else ''],
+            'Feedback': [feedback]
+        }
+        
+        # Crear DataFrame con el nuevo registro
+        new_record = pd.DataFrame(data)
+        
+        # Si existe el archivo, añadir al existente
+        if os.path.exists('usage_log.csv'):
+            df = pd.read_csv('usage_log.csv')
+            df = pd.concat([df, new_record], ignore_index=True)
+        else:
+            df = new_record
+            
+        # Guardar el archivo
+        df.to_csv('usage_log.csv', index=False)
+    except Exception as e:
+        print(f"Error logging usage: {e}")
+
 class ImageProcessor:
     def __init__(self):
         pass
@@ -42,7 +68,7 @@ class ImageProcessor:
             ]
         else:
             book_width = int((final_size[0] - (2 * margin)) / 3.5)
-            spacinging = int((final_size[0] - (3 * book_width)) / 4)
+            spacing = int((final_size[0] - (3 * book_width)) / 4)
             positions = [
                 spacing,
                 spacing * 2 + book_width,
@@ -72,32 +98,6 @@ class ImageProcessor:
                     )
         
         return background
-
-def log_usage(asins, feedback=""):
-    """Registra el uso en un CSV"""
-    try:
-y:
-        # Crear o cargar el archivo de registro
-        log_file = "usage_log.csv"
-        if os.path.exists(log_file):
-            df = pd.read_csv(log_file)
-        else:
-            df = pd.DataFrame(columns=['Fecha', 'ASIN1', 'ASIN2', 'ASIN3', 'Feedback'])
-        
-        # Crear nuevo registro
-        new_record = {
-            'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'ASIN1': asins[0] if len(asins) > 0 else '',
-            'ASIN2': asins[1] if len(asins) > 1 else '',
-            'ASIN3': asins[2] if len(asins) > 2 else '',
-            'Feedback': feedback
-        }
-        
-        # Añadir al DataFrame y guardar
-        df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
-        df.to_csv(log_file, index=False)
-    except:
-        pass
 
 def main():
     st.title("Generador de Imágenes Push")
@@ -136,7 +136,7 @@ def main():
             file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
             mime="image/jpeg"
         ):
-            log_usage(asins)  # Registrar uso al descargar
+            log_usage(asins)
 
     feedback = st.text_area(
         "Feedback (opcional)",
@@ -145,7 +145,7 @@ def main():
     )
 
     if feedback and st.button("Guardar feedback"):
-        log_usage(asins, feedback)  # Registrar uso con feedback
+        log_usage(asins, feedback)
 
 if __name__ == "__main__":
     main()

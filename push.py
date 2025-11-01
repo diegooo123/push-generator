@@ -109,6 +109,7 @@ def save_to_github(asin1, asin2, asin3):
             )
             st.success("✅ Registro guardado exitosamente")
             st.balloons()
+            return True
             
         except Exception as e:
             if "404" in str(e):
@@ -129,11 +130,14 @@ def save_to_github(asin1, asin2, asin3):
                 )
                 st.success("✅ Nuevo archivo creado exitosamente")
                 st.balloons()
+                return True
             else:
                 st.error(f"❌ Error accediendo al archivo: {str(e)}")
+                return False
     
     except Exception as e:
         st.error(f"❌ Error de conexión: {str(e)}")
+        return False
 
 def main():
     st.title("Generador de Imágenes Push")
@@ -169,7 +173,7 @@ def main():
         
         with col1:
             st.download_button(
-                label="Descargar imagen",
+                label="Solo Descargar",
                 data=img_byte_arr,
                 file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
                 mime="image/jpeg"
@@ -177,7 +181,16 @@ def main():
         
         with col2:
             if st.button("Guardar en GitHub"):
-                save_to_github(asin1, asin2, asin3)
+                if save_to_github(asin1, asin2, asin3):
+                    st.success("✅ Proceso completado. Ahora puedes descargar la imagen")
+                    img_byte_arr.seek(0)
+                    st.download_button(
+                        label="⬇️ Descargar imagen guardada",
+                        data=img_byte_arr,
+                        file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
+                        mime="image/jpeg",
+                        key="download_after_save"
+                    )
 
 if __name__ == "__main__":
     main()

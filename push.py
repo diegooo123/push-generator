@@ -23,12 +23,11 @@ def main():
             st.write("2️⃣ Buscando archivo de registros...")
             try:
                 contents = repo.get_contents("usage_log.csv")
-  
-                existing_data = contents.decoded_content.decode()
-                df = pd.read_csv(StringIO(exististing_data))
+                existing_data = contents.decoded_content.decode()  # Corregido aquí
+                df = pd.read_csv(StringIO(existing_data))
                 st.success(f"✅ Archivo encontrado con {len(df)} registros")
                 
-                # Crear nuevo ro registro
+                # Crear nuevo regististro
                 st.write("3️⃣ Añadiendo nuevo registro...")
                 new_record = {
                     'ID': len(df) + 1,

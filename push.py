@@ -4,9 +4,6 @@ import requests
 from io import BytesIO
 import os
 from datetime import datetime
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 class ImageProcessor:
     def __init__(self):
@@ -44,7 +41,7 @@ class ImageProcessor:
             ]
         else:
             book_width = int((final_size[0] - (2 * margin)) / 3.5)
-            spacing = int((final_size[0] - (3 * book_ok_width)) / 4)
+            spacing = int((final_size[0] - (3 * book_width)) / 4)
             positions = [
                 spacing,
                 spacing * 2 + book_width,
@@ -77,26 +74,19 @@ class ImageProcessor:
 
 def send_notification(asins, feedback=""):
     try:
-        msg = MIMEMultipart()
-        msg['From'] = st.secrets["smtp_from"]
-        msg['To'] = st.secrets["smtp_to"]
-        msg['Subject'] = "Nuevo uso del Generador de Push"
-
-        body = f"""
-        Nueva imagen generada:
-        Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-        
-        ASINs utilizados:
-        {'| '.join(asins)}
-        
-        {"Feedback: " + feedback if feedback else "Sin feedback"}
-        """
-
-        msg.attach(MIMEText(body, 'plain'))
-
-        with smtplib.SMTP(st.secrets["smtp_server"], int(st.secrets["smtp_port"])) as server:
-            server.starttls()
-            server.send_message(msg)
+        st.experimental_memo.send_email(
+            to="ddig@amazon.com",
+            subject="Nuevo uso del Generador de Push",
+            message=f"""
+            Nueva imagen generada:
+            Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+            
+            ASINs utilizados:
+            {'| '.join(asins)}
+            
+            {"Feedback: " + feedback if feedback else "Sin feedback"}
+            """
+        )
     except Exception as e:
         pass
 
@@ -150,5 +140,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    

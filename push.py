@@ -4,6 +4,34 @@ import requests
 from io import BytesIO
 import os
 from datetime import datetime
+import pandas as pd
+
+class ExcelTracker:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.ensure_file_exists()
+    
+    def ensure_file_exists(self):
+        if not os.path.exists(self.file_path):
+            df = pd.DataFrame(columns=['ID', 'Fecha', 'ASIN', 'ASIN.1', 'ASIN.2', 'Feedback'])
+            df.to_excel(self.file_path, index=False)
+    
+    def add_record(self, asins, feedback=""):
+        try:
+            df = pd.read_excel(self.file_path)
+            new_record = {
+                'ID': len(df) + 1,
+                'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'ASIN': asins[0] if len(asins) > 0 else '',
+                'ASIN.1': asins[1] if len(asins) > 1 else '',
+                'ASIN.2': asins[2] if len(asins) > 2 else '',
+                'Feedback': feedback
+            }
+            df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
+            df.to_excel(self.file_path, index=False)
+            return True
+        except Exception as e:
+            return False
 
 class ImageProcessor:
     def __init__(self):
@@ -17,28 +45,22 @@ class ImageProcessor:
                 return Image.open(BytesIO(response.content))
             return None
         except Exception as e:
-            st.error(f"Error al procesar ASIN {asin}: {e}")
             return None
 
     def create_notification_image(self, asins, background_color='#FFFFFF', final_size=(634, 300)):
-        # Convertir color hex a RGB
         bg_color = tuple(int(background_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
         background = Image.new('RGB', final_size, bg_color)
         
-        # Configuración base
-        margin = int(final_size[0] * 0.05)  # 5% de margen
-        vertical_margin = int(final_size[1] * 0.1)  # 10% de margen vertical
+        margin = int(final_size[0] * 0.05)
+        vertical_margin = int(final_size[1] * 0.1)
         
-        # Calcular dimensiones según número de imágenes
         num_images = len(asins)
         if num_images == 1:
-            # Una imagen centrada
-            book_width = int(final_size[0] * 0.25)  # 40% del ancho total
-            positions = [int(final_size[0]/2 - book_width/2)]  # Centrado
+            book_width = int(final_size[0] * 0.4)
+            positions = [int(final_size[0]/2 - book_width/2)]
         elif num_images == 2:
-            # Dos imágenes centradas
-            book_width = int(final_size[0] * 0.25)  # 30% del ancho para cada imagen
-            spacing = int(final_size[0] * 0.2)  # 15% de espacio entre ellas
+            book_width = int(final_size[0] * 0.25)
+            spacing = int(final_size[0] * 0.2)
             total_width = (2 * book_width) + spacing
             start_x = int((final_size[0] - total_width) / 2)
             positions = [
@@ -46,7 +68,6 @@ class ImageProcessor:
                 start_x + book_width + spacing
             ]
         else:
-            # Tres imágenes distribuidas
             book_width = int((final_size[0] - (2 * margin)) / 3.5)
             spacing = int((final_size[0] - (3 * book_width)) / 4)
             positions = [
@@ -57,32 +78,31 @@ class ImageProcessor:
         
         book_height = int(final_size[1] - (2 * vertical_margin))
         
-        # Procesar cada imagen
         for i, asin in enumerate(asins):
             if i < 3 and asin.strip():
                 book = self.get_amazon_image(asin)
                 if book:
-                    # Mantener proporción
                     original_ratio = book.width / book.height
                     new_height = min(book_height, int(book_width / original_ratio))
                     new_width = int(new_height * original_ratio)
                     
-                    # Redimensionar
                     book = book.resize(
                         (new_width, new_height),
                         Image.Resampling.LANCZOS
                     )
                     
-                    # Centrar verticalmente
                     y_position = int((final_size[1] - new_height) / 2)
                     
-                    # Pegar imagen
                     background.paste(
                         book,
                         (positions[i], y_position)
                     )
         
         return background
+
+def register_download(asins):
+    tracker = ExcelTracker(r"C:\Users\ddig\Documents\Push\Trackerdeuso.xlsx")
+    tracker.add_record(asins)
 
 def main():
     st.title("Generador de Imágenes Push")
@@ -91,43 +111,50 @@ def main():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        asin1 = st.text_input("ASIN 1:", help="Ingresa el primer ASIN")
+        asin1 = st.text_input("ASIN 1:", help="Ingresa el primer ASIN", key="asin1")
     with col2:
-        asin2 = st.text_input("ASIN 2:", help="Ingresa el segundo ASIN (opcional)")
+        asin2 = st.text_input("ASIN 2:", help="Ingresa el segundo ASIN (opcional)", key="asin2")
     with col3:
-        asin3 = st.text_input("ASIN 3:", help="Ingresa el tercer ASIN (opcional)")
+        asin3 = st.text_input("ASIN 3:", help="Ingresa el tercer ASIN (opcional)", key="asin3")
 
     background_color = st.color_picker(
         "Color de fondo",
         "#FFFFFF",
-        help="Selecciona el color de fondo"
+        help="Selecciona el color de fondo",
+        key="bg_color"
     )
 
-    if st.button("Generar imagen"):
-        if not asin1 and not asin2 and not asin3:
-            st.error("Por favor, ingresa al menos un ASIN")
-            return
+    asins = [asin for asin in [asin1, asin2, asin3] if asin.strip()]
 
-        with st.spinner("Procesando..."):
-            processor = ImageProcessor()
-            asins = [asin for asin in [asin1, asin2, asin3] if asin.strip()]
-            image = processor.create_notification_image(asins, background_color)
+    if asins:
+        processor = ImageProcessor()
+        image = processor.create_notification_image(asins, background_color)
+        st.image(image, caption="Vista previa", use_container_width=True)
+        
+        img_byte_arr = BytesIO()
+        image.save(img_byte_arr, format='JPEG', quality=95)
+        img_byte_arr.seek(0)
+        
+        st.download_button(
+            label="Descargar imagen",
+            data=img_byte_arr,
+            file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
+            mime="image/jpeg",
+            on_click=lambda: register_download(asins)
+        )
 
-            # Mostrar preview
-            st.image(image, caption="Vista previa", use_container_width=True)
-            
-            # Preparar imagen para descarga
-            img_byte_arr = BytesIO()
-            image.save(img_byte_arr, format='JPEG', quality=95)
-            img_byte_arr.seek(0)
-            
-            # Botón de descarga
-            st.download_button(
-                label="Descargar imagen",
-                data=img_byte_arr,
-                file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
-                mime="image/jpeg"
-            )
+    feedback = st.text_area(
+        "Feedback (opcional)",
+        help="Comparte tu experiencia o sugerencias",
+        key="feedback"
+    )
+
+    if feedback:
+        if st.button("Guardar feedback"):
+            tracker = ExcelTracker(r"C:\Users\ddig\Documents\Push\Trackerdeuso.xlsx")
+            tracker.add_record(asins, feedback)
 
 if __name__ == "__main__":
     main()
+
+    

@@ -10,10 +10,11 @@ def log_usage(asins, feedback=""):
     try:
         # Preparar los datos del registro
         data = {
+            'ID': [0],  # Se ajustará automáticamente
             'Fecha': [datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
-            'ASIN1': [asins[0] if len(asins) > 0 else ''],
-            'ASIN2': [asins[1] if len(asins) > 1 else ''],
-            'ASIN3': [asins[2] if len(asins) > 2 else ''],
+            'ASIN': [asins[0] if len(asins) > 0 else ''],
+            'ASIN.1': [asins[1] if len(asins) > 1 else ''],
+            'ASIN.2': [asins[2] if len(asins) > 2 else ''],
             'Feedback': [feedback]
         }
         
@@ -23,8 +24,11 @@ def log_usage(asins, feedback=""):
         # Si existe el archivo, añadir al existente
         if os.path.exists('usage_log.csv'):
             df = pd.read_csv('usage_log.csv')
+            # Asignar nuevo ID
+            new_record['ID'] = len(df) + 1
             df = pd.concat([df, new_record], ignore_index=True)
         else:
+            new_record['ID'] = 1
             df = new_record
             
         # Guardar el archivo

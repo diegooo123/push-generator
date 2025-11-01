@@ -38,7 +38,7 @@ class ImageProcessor:
             positions = [
                 start_x,
                 start_x + book_width + spacing
-            ]
+               ]
         else:
             book_width = int((final_size[0] - (2 * margin)) / 3.5)
             spacing = int((final_size[0] - (3 * book_width)) / 4)
@@ -103,12 +103,20 @@ def main():
         image.save(img_byte_arr, format='JPEG', quality=95)
         img_byte_arr.seek(0)
         
-        st.download_button(
+        if st.download_button(
             label="Descargar imagen",
             data=img_byte_arr,
             file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
             mime="image/jpeg"
-        )
+        ):
+            st.write("📝 Intentando registrar uso...")
+            try:
+                from github import Github
+                g = Github(st.secrets["github_token"])
+                repo = g.get_repo(st.secrets["github_repo"])
+                st.write("✅ Conexión exitosa")
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
 
 if __name__ == "__main__":
     main()

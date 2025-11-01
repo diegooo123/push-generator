@@ -4,35 +4,9 @@ import requests
 from io import BytesIO
 import os
 from datetime import datetime
-import pandas as pd
-import json
-
-class ExcelTracker:
-    def __init__(self):
-        self.file_path = "usage_tracker.csv"
-        self.ensure_file_exists()
-    
-    def ensure_file_exists(self):
-        if not os.path.exists(self.file_path):
-            df = pd.DataFrame(columns=['ID', 'Fecha', 'ASIN', 'ASIN.1', 'ASIN.2', 'Feedback'])
-            df.to_csv(self.file_path, index=False)
-    
-    def add_record(self, asins, feedback=""):
-        try:
-            df = pd.read_csv(self.file_path) if os.path.exists(self.file_path) else pd.DataFrame(columns=['ID', 'Fecha', 'ASIN', 'ASIN.1', 'ASIN.2', 'Feedback'])
-            new_record = {
-                'ID': len(df) + 1,
-                'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'ASIN': asins[0] if len(asins) > 0 else '',
-                'ASIN.1': asins[1] if len(asins) > 1 else '',
-                'ASIN.2': asins[2] if len(asins) > 2 else '',
-                'Feedback': feedback
-            }
-            df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
-            df.to_csv(self.file_path, index=False)
-            return True
-        except Exception as e:
-            return False
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 class ImageProcessor:
     def __init__(self):
@@ -70,7 +44,7 @@ class ImageProcessor:
             ]
         else:
             book_width = int((final_size[0] - (2 * margin)) / 3.5)
-            spacing = int((final_size[0] - (3 * book_width)) / 4)
+            spacing = int((final_size[0] - (3 * book_ok_width)) / 4)
             positions = [
                 spacing,
                 spacing * 2 + book_width,
@@ -101,9 +75,30 @@ class ImageProcessor:
         
         return background
 
-def register_download(asins):
-    tracker = ExcelTracker()
-    tracker.add_record(asins)
+def send_notification(asins, feedback=""):
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = st.secrets["smtp_from"]
+        msg['To'] = st.secrets["smtp_to"]
+        msg['Subject'] = "Nuevo uso del Generador de Push"
+
+        body = f"""
+        Nueva imagen generada:
+        Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+        
+        ASINs utilizados:
+        {'| '.join(asins)}
+        
+        {"Feedback: " + feedback if feedback else "Sin feedback"}
+        """
+
+        msg.attach(MIMEText(body, 'plain'))
+
+        with smtplib.SMTP(st.secrets["smtp_server"], int(st.secrets["smtp_port"])) as server:
+            server.starttls()
+            server.send_message(msg)
+    except Exception as e:
+        pass
 
 def main():
     st.title("Generador de Imágenes Push")
@@ -136,13 +131,13 @@ def main():
         image.save(img_byte_arr, format='JPEG', quality=95)
         img_byte_arr.seek(0)
         
-        st.download_button(
+        if st.download_button(
             label="Descargar imagen",
             data=img_byte_arr,
             file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
-            mime="image/jpeg",
-            on_click=lambda: register_download(asins)
-        )
+            mime="image/jpeg"
+        ):
+            send_notification(asins)
 
     feedback = st.text_area(
         "Feedback (opcional)",
@@ -150,10 +145,10 @@ def main():
         key="feedback"
     )
 
-    if feedback:
-        if st.button("Guardar feedback"):
-            tracker = ExcelTracker()
-            tracker.add_record(asins, feedback)
+    if feedback and st.button("Guardar feedback"):
+        send_notification(asins, feedback)
 
 if __name__ == "__main__":
     main()
+
+    

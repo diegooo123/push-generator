@@ -5,6 +5,7 @@ from io import BytesIO, StringIO
 from datetime import datetime
 from github import Github
 import pandas as pd
+import time
 
 class ImageProcessor:
     def __init__(self):
@@ -28,7 +29,7 @@ class ImageProcessor:
         vertical_margin = int(final_size[1] * 0.1)
         
         num_images = len(asins)
-        if num_images == 1:
+        if num_imagesges == 1:
             book_width = int(final_size[0] * 0.4)
             positions = [int(final_size[0]/2 - book_width/2)]
         elif num_images == 2:
@@ -74,29 +75,29 @@ class ImageProcessor:
         return background
 
 def register_usage_silently(asins):
+    debug_container = st.empty()
     try:
-        # Debug temporal
-        st.write("Iniciando registro...")
+        debug_container.write("🚀 Iniciando registro...")
         
         g = Github(st.secrets["github_token"])
         repo = g.get_repo(st.secrets["github_repo"])
-        st.write("Conexión a GitHub OK")
+        debug_container.write("✅ Conexión a GitHub OK")
         
         try:
             contents = repo.get_contents("usage_log.csv")
             existing_data = contents.decoded_content.decode()
             df = pd.read_csv(StringIO(existing_data))
-            st.write(f"Archivo encontrado con {len(df)} registros")
+            debug_container.write(f"📁 Archivo encontrado con {len(df)} registros")
             
             new_record = {
                 'ID': len(df) + 1,
-                'Fecha': datetime.now().strftimtime('%Y-%m-%d %H:%M:%S'),
+                'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'ASIN': asins[0] if len(asins) > 0 else '',
                 'ASIN.1': asins[1] if len(asins) > 1 else '',
                 'ASIN.2': asins[2] if len(asins) > 2 else '',
                 'Feedback': ''
             }
-            st.write(f"Nuevo registro creado: {new_record}")
+            debug_container.write(f"📝 Nuevo registro: {new_record}")
             
             df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
             update = repo.update_file(
@@ -105,30 +106,36 @@ def register_usage_silently(asins):
                 df.to_csv(index=False),
                 contents.sha
             )
-            st.write("Archivo actualizado")
+            debug_container.write("✨ Archivo actualizado exitosamente")
             
         except Exception as e:
-            st.write(f"Error al actualizar: {str(e)}")
-            st.write("Intentando crear nuevo archivo...")
-            
-            df = pd.DataFrame([{
-                'ID': 1,
-                'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'ASIN': asins[0] if len(asins) > 0 else '',
-                'ASIN.1': asins[1] if len(asins) > 1 else '',
-                'ASIN.2': asins[2] if len(asins) > 2 else '',
-                'Feedback': ''
-            }])
-            
-            repo.create_file(
-                "usage_log.csv",
-                "Create usage log",
-                df.to_csv(index=False)
-            )
-            st.write("Nuevo archivo creado")
+            if "404" in str(e):
+                debug_container.write("📁 Creando nuevo archivo...")
+                df = pd.DataFrame([{
+                    'ID': 1,
+                    'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'ASIN': asins[0] if len(asins) > 0 else '',
+                    'ASIN.1': asins[1] if len(asins) > 1 else '',
+                    'ASIN.2': asins[2] if len(asins) > 2 else '',
+                    'Feedback': ''
+                }])
+                
+                repo.create_file(
+                    "usage_log.csv",
+                    "Create usage log",
+                    df.to_csv(index=False)
+                )
+                debug_container.write("✅ Nuevo archivo creado exitosamente")
+            else:
+                debug_container.write(f"❌ Error al procesar archivo: {str(e)}")
             
     except Exception as e:
-        st.write(f"Error general: {str(e)}")
+        debug_container.write(f"❌ Error de conexión: {str(e)}")
+    
+    # Esperar un momento para que los mensajes sean visibles
+    time.sleep(2)
+    # Limpiar los mensajes de debug
+    debug_container.empty()
 
 def main():
     st.title("Generador de Imágenes Push")

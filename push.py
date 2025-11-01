@@ -71,23 +71,15 @@ def create_notification_image(asins, background_color='#FFFFFF', final_size=(634
     return background
 
 def save_to_github(asin1, asin2, asin3):
-    st.write("1️⃣ Iniciando conexión con GitHub...")
     try:
-        # Conectar a GitHub
         g = Github(st.secrets["github_token"])
         repo = g.get_repo(st.secrets["github_repo"])
-        st.success("✅ Conectado a GitHub exitosamente")
         
-        # Buscar archivo
-        st.write("2️⃣ Buscando archivo de registros...")
         try:
             contents = repo.get_contents("usage_log.csv")
             existing_data = contents.decoded_content.decode()
             df = pd.read_csv(StringIO(existing_data))
-            st.success(f"✅ Archivo encontrado con {len(df)} registros")
             
-            # Crear nuevo registro
-            st.write("3️⃣ Añadiendo nuevo registro...")
             new_record = {
                 'ID': len(df) + 1,
                 'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -99,21 +91,16 @@ def save_to_github(asin1, asin2, asin3):
             
             df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
             
-            # Guardar cambios
-            st.write("4️⃣ Guardando cambios...")
             repo.update_file(
                 contents.path,
                 f"Update usage log - Test",
                 df.to_csv(index=False),
                 contents.sha
             )
-            st.success("✅ Registro guardado exitosamente")
-            st.balloons()
             return True
             
         except Exception as e:
             if "404" in str(e):
-                st.warning("⚠️ Archivo no encontrado, creando uno nuevo...")
                 df = pd.DataFrame([{
                     'ID': 1,
                     'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -128,15 +115,11 @@ def save_to_github(asin1, asin2, asin3):
                     "Create usage log",
                     df.to_csv(index=False)
                 )
-                st.success("✅ Nuevo archivo creado exitosamente")
-                st.balloons()
                 return True
             else:
-                st.error(f"❌ Error accediendo al archivo: {str(e)}")
                 return False
     
     except Exception as e:
-        st.error(f"❌ Error de conexión: {str(e)}")
         return False
 
 def main():
@@ -169,28 +152,19 @@ def main():
         image.save(img_byte_arr, format='JPEG', quality=95)
         img_byte_arr.seek(0)
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.download_button(
-                label="Solo Descargar",
-                data=img_byte_arr,
-                file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
-                mime="image/jpeg"
-            )
-        
-        with col2:
-            if st.button("Guardar en GitHub"):
-                if save_to_github(asin1, asin2, asin3):
-                    st.success("✅ Proceso completado. Ahora puedes descargar la imagen")
-                    img_byte_arr.seek(0)
-                    st.download_button(
-                        label="⬇️ Descargar imagen guardada",
-                        data=img_byte_arr,
-                        file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
-                        mime="image/jpeg",
-                        key="download_after_save"
-                    )
+        if st.button("Validar y Descargar"):
+            if save_to_github(asin1, asin2, asin3):
+                st.success("✅ Validación exitosa")
+                img_byte_arr.seek(0)
+                st.download_button(
+                    label="⬇️ Descargar imagen",
+                    data=img_byte_arr,
+                    file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
+                    mime="image/jpeg",
+                    key="download_after_save"
+                )
+            else:
+                st.error("❌ Error en la validación")
 
 if __name__ == "__main__":
     main()

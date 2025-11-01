@@ -98,7 +98,7 @@ def main():
         img_byte_arr = BytesIO()
         image.save(img_byte_arr, format='JPEG', quality=95)
         img_byte_arr.seek(0)
-        
+
         if st.download_button(
             label="Descargar imagen",
             data=img_byte_arr,
@@ -110,11 +110,10 @@ def main():
                 g = Github(st.secrets["github_token"])
                 repo = g.get_repo(st.secrets["github_repo"])
                 st.success("✅ Conectado a GitHub exitosamente")
-                
                 st.write("2️⃣ Buscando archivo de registros...")
                 try:
                     contents = repo.get_contents("usage_log.csv")
-                    existing_data = contents.decoded_content.decode()  # Corregido aquí
+                    existing_data = contents.decoded_content.decode()
                     df = pd.read_csv(StringIO(existing_data))
                     st.success(f"✅ Archivo encontrado con {len(df)} registros")
                     
@@ -122,9 +121,9 @@ def main():
                     new_record = {
                         'ID': len(df) + 1,
                         'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                        'ASIN': asins[0] if len(asins) > 0 else '',
-                        'ASIN.1': asins[1] if len(asins) > 1 else '',
-                        'ASIN.2': asins[2] if len(asins) > 2 else '',
+                        'ASIN': asin1,
+                        'ASIN.1': asin2,
+                        'ASIN.2': asin3,
                         'Feedback': ''
                     }
                     
@@ -146,9 +145,9 @@ def main():
                         df = pd.DataFrame([{
                             'ID': 1,
                             'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                            'ASIN': asins[0] if len(asins) > 0 else '',
-                            'ASIN.1': asins[1] if len(asins) > 1 else '',
-                            'ASIN.2': asins[2] if len(asins) > 2 else '',
+                            'ASIN': asin1,
+                            'ASIN.1': asin2,
+                            'ASIN.2': asin3,
                             'Feedback': ''
                         }])
                         

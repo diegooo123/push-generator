@@ -100,14 +100,16 @@ def main():
         image.save(img_byte_arr, format='JPEG', quality=95)
         img_byte_arr.seek(0)
         
-        if st.download_button(
+        download_clicked = st.download_button(
             label="Descargar imagen",
             data=img_byte_arr,
             file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
-            mime="image/jpeg"
-        ):
+            mime="image/jpeg",
+            on_click=None
+        )
+        
+        if download_clicked:
             st.write("1️⃣ Iniciando conexión con GitHub...")
-            
             try:
                 # Conectar a GitHub
                 g = Github(st.secrets["github_token"])

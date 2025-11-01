@@ -29,7 +29,7 @@ class ImageProcessor:
         vertical_margin = int(final_size[1] * 0.1)
         
         num_images = len(asins)
-        if num_imagesges == 1:
+        if num_images == 1:
             book_width = int(final_size[0] * 0.4)
             positions = [int(final_size[0]/2 - book_width/2)]
         elif num_images == 2:
@@ -42,7 +42,7 @@ class ImageProcessor:
                 start_x + book_width + spacing
             ]
         else:
-            book_width = int((final_size[0] - (2 * margin)) / 3.5)
+            book_width = int((final_size[0e[0] - (2 * margin)) / 3.5)
             spacing = int((final_size[0] - (3 * book_width)) / 4)
             positions = [
                 spacing,
@@ -132,9 +132,7 @@ def register_usage_silently(asins):
     except Exception as e:
         debug_container.write(f"❌ Error de conexión: {str(e)}")
     
-    # Esperar un momento para que los mensajes sean visibles
     time.sleep(2)
-    # Limpiar los mensajes de debug
     debug_container.empty()
 
 def main():

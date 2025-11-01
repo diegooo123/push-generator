@@ -1,139 +1,73 @@
 import streamlit as st
+from github import Github
+from datetime import datetime
+import pandas as pd
+from io import StringIO, BytesIO
 from PIL import Image
 import requests
-from io import BytesIO, StringIO
-from datetime import datetime
-from github import Github
-import pandas as pd
-import time
 
-class ImageProcessor:
-    def __init__(self):
-        pass
-
-    def get_amazon_image(self, asin):
-        try:
-            url = f"https://images-na.ssl-images-amazon.com/images/P/{asin}.01.LZZZZZZZ.jpg"
-            response = requests.get(url)
-            if response.status_code == 200:
-                return Image.open(BytesIO(response.content))
-            return None
-        except Exception as e:
-            return None
-
-    def create_notification_image(self, asins, background_color='#FFFFFF', final_size=(634, 300)):
-        bg_color = tuple(int(background_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
-        background = Image.new('RGB', final_size, bg_color)
-        
-        margin = int(final_size[0] * 0.05)
-        vertical_margin = int(final_size[1] * 0.1)
-        
-        num_images = len(asins)
-        if num_images == 1:
-            book_width = int(final_size[0] * 0.4)
-            positions = [int(final_size[0]/2 - book_width/2)]
-        elif num_images == 2:
-            book_width = int(final_size[0] * 0.25)
-            spacing = int(final_size[0] * 0.2)
-            total_width = (2 * book_width) + spacing
-            start_x = int((final_size[0] - total_width) / 2)
-            positions = [
-                start_x,
-                start_x + book_width + spacing
-            ]
-        else:
-            book_width = int((final_size[0e[0] - (2 * margin)) / 3.5)
-            spacing = int((final_size[0] - (3 * book_width)) / 4)
-            positions = [
-                spacing,
-                spacing * 2 + book_width,
-                spacing * 3 + book_width * 2
-            ]
-        
-        book_height = int(final_size[1] - (2 * vertical_margin))
-        
-        for i, asin in enumerate(asins):
-            if i < 3 and asin.strip():
-                book = self.get_amazon_image(asin)
-                if book:
-                    original_ratio = book.width / book.height
-                    new_height = min(book_height, int(book_width / original_ratio))
-                    new_width = int(new_height * original_ratio)
-                    
-                    book = book.resize(
-                        (new_width, new_height),
-                        Image.Resampling.LANCZOS
-                    )
-                    
-                    y_position = int((final_size[1] - new_height) / 2)
-                    
-                    background.paste(
-                        book,
-                        (positions[i], y_position)
-                    )
-        
-        return background
-
-def register_usage_silently(asins):
-    debug_container = st.empty()
+def get_amazon_image(asin):
     try:
-        debug_container.write("🚀 Iniciando registro...")
-        
-        g = Github(st.secrets["github_token"])
-        repo = g.get_repo(st.secrets["github_repo"])
-        debug_container.write("✅ Conexión a GitHub OK")
-        
-        try:
-            contents = repo.get_contents("usage_log.csv")
-            existing_data = contents.decoded_content.decode()
-            df = pd.read_csv(StringIO(existing_data))
-            debug_container.write(f"📁 Archivo encontrado con {len(df)} registros")
-            
-            new_record = {
-                'ID': len(df) + 1,
-                'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'ASIN': asins[0] if len(asins) > 0 else '',
-                'ASIN.1': asins[1] if len(asins) > 1 else '',
-                'ASIN.2': asins[2] if len(asins) > 2 else '',
-                'Feedback': ''
-            }
-            debug_container.write(f"📝 Nuevo registro: {new_record}")
-            
-            df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
-            update = repo.update_file(
-                contents.path,
-                f"Update usage log",
-                df.to_csv(index=False),
-                contents.sha
-            )
-            debug_container.write("✨ Archivo actualizado exitosamente")
-            
-        except Exception as e:
-            if "404" in str(e):
-                debug_container.write("📁 Creando nuevo archivo...")
-                df = pd.DataFrame([{
-                    'ID': 1,
-                    'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    'ASIN': asins[0] if len(asins) > 0 else '',
-                    'ASIN.1': asins[1] if len(asins) > 1 else '',
-                    'ASIN.2': asins[2] if len(asins) > 2 else '',
-                    'Feedback': ''
-                }])
-                
-                repo.create_file(
-                    "usage_log.csv",
-                    "Create usage log",
-                    df.to_csv(index=False)
-                )
-                debug_container.write("✅ Nuevo archivo creado exitosamente")
-            else:
-                debug_container.write(f"❌ Error al procesar archivo: {str(e)}")
-            
+        url = f"https://images-na.ssl-images-amazon.com/images/P/{asin}.01.LZZZZZZZ.jpg"
+        response = requests.get(url)
+        if response.status_code == 200:
+            return Image.open(BytesIO(response.content))
+        return None
     except Exception as e:
-        debug_container.write(f"❌ Error de conexión: {str(e)}")
+        return None
+
+def create_notification_image(asins, background_color='#FFFFFF', final_size=(634, 300)):
+    bg_color = tuple(int(background_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+    background = Image.new('RGB', final_size, bg_color)
     
-    time.sleep(2)
-    debug_container.empty()
+    margin = int(final_size[0] * 0.05)
+    vertical_margin = int(final_size[1] * 0.1)
+    
+    num_images = len(asins)
+    if num_images == 1:
+        book_width = int(final_size[0] * 0.4)
+        positions = [int(final_size[0]/2 - book_width/2)]
+    elif num_images == 2:
+        book_width = int(final_size[0] * 0.25)
+        spacing = int(final_size[0] * 0.2)
+        total_width = (2 * book_width) + spacing
+        start_x = int((final_size[0] - total_width) / 2)
+        positions = [
+            start_x,
+            start_x + book_width + spacing
+        ]
+    else:
+        book_width = int((final_size[0] - (2 * margin)) / 3.5)
+        spacing = int((final_size[0] - (3 * book_width)) / 4)
+        positions = [
+            spacing,
+            spacing * 2 + book_width,
+            spacing * 3 + book_width * 2
+        ]
+    
+    book_height = int(final_size[1] - (2 * vertical_margin))
+    
+    for i, asin in enumerate(asins):
+        if i < 3 and asin.strip():
+            book = get_amazon_image(asin)
+            if book:
+                original_ratio = book.width / book.height
+                new_height = min(book_height, int(book_width / original_ratio))
+                new_width = int(new_height * original_ratio)
+                
+                book = book.resize(
+                    (new_width, new_height),
+                    Image.Resampling.LANCZOS
+                )
+                
+                y_position = int((final_size[1] - new_height) / 2)
+                
+                background.paste(
+                    book,
+                    (positions[i], y_position)
+                )
+    
+    return background
 
 def main():
     st.title("Generador de Imágenes Push")
@@ -158,8 +92,7 @@ def main():
     asins = [asin for asin in [asin1, asin2, asin3] if asin.strip()]
 
     if asins:
-        processor = ImageProcessor()
-        image = processor.create_notification_image(asins, background_color)
+        image = create_notification_image(asins, background_color)
         st.image(image, caption="Vista previa", use_container_width=True)
         
         img_byte_arr = BytesIO()
@@ -172,8 +105,65 @@ def main():
             file_name=f"push_notification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
             mime="image/jpeg"
         ):
-            register_usage_silently(asins)
-            st.balloons()
+            try:
+                st.write("1️⃣ Iniciando conexión con GitHub...")
+                g = Github(st.secrets["github_token"])
+                repo = g.get_repo(st.secrets["github_repo"])
+                st.success("✅ Conectado a GitHub exitosamente")
+                
+                st.write("2️⃣ Buscando archivo de registros...")
+                try:
+                    contents = repo.get_contents("usage_log.csv")
+                    existing_data = contents.decoded_content.decode()
+                    df = pd.read_csv(StringIO(existing_data))
+                    st.success(f"✅ Archivo encontrado con {len(df)} registros")
+                    
+                    st.write("3️⃣ Añadiendo nuevo registro...")
+                    new_record = {
+                        'ID': len(df) + 1,
+                        'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'ASIN': asins[0] if len(asins) > 0 else '',
+                        'ASIN.1': asins[1] if len(asins) > 1 else '',
+                        'ASIN.2': asins[2] if len(asins) > 2 else '',
+                        'Feedback': ''
+                    }
+                    
+                    df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
+                    
+                    st.write("4️⃣ Guardando cambios...")
+                    repo.update_file(
+                        contents.path,
+                        f"Update usage log",
+                        df.to_csv(index=False),
+                        contents.sha
+                    )
+                    st.success("✅ Registro guardado exitosamente")
+                    st.balloons()
+                    
+                except Exception as e:
+                    if "404" in str(e):
+                        st.warning("⚠️ Archivo no encontrado, creando uno nuevo...")
+                        df = pd.DataFrame([{
+                            'ID': 1,
+                            'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'ASIN': asins[0] if len(asins) > 0 else '',
+                            'ASIN.1': asins[1] if len(asins) > 1 else '',
+                            'ASIN.2': asins[2] if len(asins) > 2 else '',
+                            'Feedback': ''
+                        }])
+                        
+                        repo.create_file(
+                            "usage_log.csv",
+                            "Create usage log",
+                            df.to_csv(index=False)
+                        )
+                        st.success("✅ Nuevo archivo creado exitosamente")
+                        st.balloons()
+                    else:
+                        st.error(f"❌ Error accediendo al archivo: {str(e)}")
+            
+            except Exception as e:
+                st.error(f"❌ Error de conexión: {str(e)}")
 
 if __name__ == "__main__":
     main()

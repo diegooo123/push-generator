@@ -9,7 +9,7 @@ import json
 
 class ExcelTracker:
     def __init__(self):
-        self.file_path = "usage_tracker.csv"  # Cambiamos a CSV para mayor compatibilidad
+        self.file_path = "usage_tracker.csv"
         self.ensure_file_exists()
     
     def ensure_file_exists(self):
@@ -34,9 +34,72 @@ class ExcelTracker:
         except Exception as e:
             return False
 
-# [El resto de las clases ImageProcessor se mantiene igual]
+class ImageProcessor:
+    def __init__(self):
+        pass
 
-d
+    def get_amazon_image(self, asin):
+        try:
+            url = f"https://images-na.ssl-images-amazon.com/images/P/{asin}.01.LZZZZZZZ.jpg"
+            response = requests.get(url)
+            if response.status_code == 200:
+                return Image.open(BytesIO(response.content))
+            return None
+        except Exception as e:
+            return None
+
+    def create_notification_image(self, asins, background_color='#FFFFFF', final_size=(634, 300)):
+        bg_color = tuple(int(background_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        background = Image.new('RGB', final_size, bg_color)
+        
+        margin = int(final_size[0] * 0.05)
+        vertical_margin = int(final_size[1] * 0.1)
+        
+        num_images = len(asins)
+        if num_images == 1:
+            book_width = int(final_size[0] * 0.4)
+            positions = [int(final_size[0]/2 - book_width/2)]
+        elif num_images == 2:
+            book_width = int(final_size[0] * 0.25)
+            spacing = int(final_size[0] * 0.2)
+            total_width = (2 * book_width) + spacing
+            start_x = int((final_size[0] - total_width) / 2)
+            positions = [
+                start_x,
+                start_x + book_width + spacing
+            ]
+        else:
+            book_width = int((final_size[0] - (2 * margin)) / 3.5)
+            spacing = int((final_size[0] - (3 * book_width)) / 4)
+            positions = [
+                spacing,
+                spacing * 2 + book_width,
+                spacing * 3 + book_width * 2
+            ]
+        
+        book_height = int(final_size[1] - (2 * vertical_margin))
+        
+        for i, asin in enumerate(asins):
+            if i < 3 and asin.strip():
+                book = self.get_amazon_image(asin)
+                if book:
+                    original_ratio = book.width / book.height
+                    new_height = min(book_height, int(book_width / original_ratio))
+                    new_width = int(new_height * original_ratio)
+                    
+                    book = book.resize(
+                        (new_width, new_height),
+                        Image.Resampling.LANCZOS
+                    )
+                    
+                    y_position = int((final_size[1] - new_height) / 2)
+                    
+                    background.paste(
+                        book,
+                        (positions[i], y_position)
+                    )
+        
+        return background
 
 def register_download(asins):
     tracker = ExcelTracker()
@@ -94,5 +157,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    

@@ -1,5 +1,6 @@
 streamlit
-pillow
-requests
-pandas
 PyGithub
+pandas
+Pillow
+requests
+beautifulsoup4

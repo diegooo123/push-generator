@@ -252,25 +252,30 @@ def main():
         .stSlider > div > div > div[data-baseweb="slider"] > div[data-testid="stTickBar"] > div {
             background: #FF9900 !important;
         }
+
+        .stTextInput input {
+            background-color: #ffd9b3 !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
     
+    st.write("Tamaño")
+    
     with col1:
-        asin1 = st.text_input("ASIN 1:", help="Ingresa el primer ASIN", key="asin1")
-        size1 = st.slider("Tamaño imagen 1", 0.1, 0.6, 0.25, 0.05, help="Ajusta el tamaño relativo", key="size1")
+        asin1 = st.text_input("ASIN 1", key="asin1")
+        size1 = st.slider("1", 0.1, 0.6, 0.25, 0.05, key="size1")
     with col2:
-        asin2 = st.text_input("ASIN 2:", help="Ingresa el segundo ASIN (opcional)", key="asin2")
-        size2 = st.slider("Tamaño imagen 2", 0.1, 0.6, 0.25, 0.05, help="Ajusta el tamaño relativo", key="size2")
+        asin2 = st.text_input("ASIN 2", key="asin2")
+        size2 = st.slider("2", 0.1, 0.6, 0.25, 0.05, key="size2")
     with col3:
-        asin3 = st.text_input("ASIN 3:", help="Ingresa el tercer ASIN (opcional)", key="asin3")
-        size3 = st.slider("Tamaño imagen 3", 0.1, 0.6, 0.25, 0.05, help="Ajusta el tamaño relativo", key="size3")
+        asin3 = st.text_input("ASIN 3", key="asin3")
+        size3 = st.slider("3", 0.1, 0.6, 0.25, 0.05, key="size3")
 
     background_color = st.color_picker(
         "Color de fondo",
         "#FFFFFF",
-        help="Selecciona el color de fondo",
         key="bg_color"
     )
 
@@ -292,7 +297,6 @@ def main():
         col1, col2 = st.columns([1, 2])
         with col1:
             if st.button("Descargar", 
-                        help="guarda la imagen generada",
                         type="primary"):
                 success, message = save_to_github(asin1, asin2, asin3)
                 if success:

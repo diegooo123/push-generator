@@ -162,8 +162,19 @@ def create_notification_image(asins, sizes, background_color='#FFFFFF', final_si
 
 def save_to_github(asin1, asin2, asin3):
     try:
+        # Verificar si las credenciales están configuradas
+        if "github_token" not in st.secrets:
+            raise Exception("Token de GitHub no configurado en los secretos")
+        if "github_repo" not in st.secrets:
+            raise Exception("Repositorio de GitHub no configurado en los secretos")
+
+        # Inicializar GitHub
         g = Github(st.secrets["github_token"])
-        repo = g.get_repo(st.secrets["github_repo"])
+        
+        try:
+            repo = g.get_repo(st.secrets["github_repo"])
+        except Exception as e:
+            raise Exception(f"Error al acceder al repositorio: {str(e)}")
         
         try:
             contents = repo.get_contents("usage_log.csv")
@@ -181,61 +192,63 @@ def save_to_github(asin1, asin2, asin3):
             
             df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
             
-            repo.update_file(
-                contents.path,
-                f"Update usage log - Test",
-                df.to_csv(index=Falsalse),
-                contents.sha
-            )
-            return True
+            try:
+                repo.update_file(
+                    contents.path,
+                    f"Update usage log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                    df.to_csv(index=False),
+                    contents.sha
+                )
+                return True, "Archivo actualizado correctamente"
+            except Exception as e:
+                raise Exception(f"Error al actualizar el archivo: {str(e)}")
             
         except Exception as e:
             if "404" in str(e):
-                df = pd.DataFrame([{
-                    'ID': 1,
-                    'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    'ASIN': asin1,
-                    'ASIN.1': asin2,
-                    'ASIN.2': asin3,
-                    'Feedback': ''
-                }])
-                
-                repo.create_file(
-                    "usage_log.csv",
-                    "Create usage log",
-                    df.to_csv(index=False)
-                )
-                return True
+                try:
+                    df = pd.DataFrame([{
+                        'ID': 1,
+                        'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'ASIN': asin1,
+                        'ASIN.1': asin2,
+                        'ASIN.2': asin3,
+                        'Feedback': ''
+                    }])
+                    
+                    repo.create_file(
+                        "usage_log.csv",
+                        "Create usage log",
+                        df.to_csv(index=False)
+                    )
+                    return True, "Nuevo archivo creado correctamente"
+                except Exception as e:
+                    raise Exception(f"Error al crear el archivo: {str(e)}")
             else:
-                return False
+                raise Exception(f"Error al leer el archivo existente: {str(e)}")
     
     except Exception as e:
-        return False
+        return False, str(e)
 
 def main():
-    st.title("Generador de Imágeneenes Push")
+    st.title("Generador de Imágenes Push")
     st.write("Ingresa hasta 3 ASINs")
 
     # Estilo personalizado para los controles
     st.markdown("""
         <style>
-        /* Estilo para la barra del slider (fondo negro) */
         .stSlider > div > div > div {
             background-color: #000000 !important;
         }
         
-        /* Estilo para el thumb del slider (círculo blanco) */
         .stSlider > div > div > div > div > div {
             background-color: #FFFFFF !important;
             border: 2px solid #000000 !important;
         }
         
-        /* Estilo para el valor del slider */
         .stSlider > div > div > div > div > div > div {
             color: #000000 !important;
         }
         
-        /* Estilo para el track activo del slider */
         .stSlider > div > div > div[data-baseweb="slider"] > div[data-testid="stTickBar"] > div {
             background: #FF9900 !important;
         }
@@ -261,7 +274,6 @@ def main():
         key="bg_color"
     )
 
-    # Enlace de feedback
     st.markdown("<div style='text-align: right;'><a href='mailto:ddig@amazon.com?subject=Feedback%20-%20Generador%20de%20Imágenes%20Push' style='color: #FF9900;'>📧 Send feedback</a></div>", unsafe_allow_html=True)
 
     asins = [asin for asin in [asin1, asin2, asin3] if asin.strip()]
@@ -282,7 +294,8 @@ def main():
             if st.button("Descargar", 
                         help="guarda la imagen generada",
                         type="primary"):
-                if save_to_github(asin1, asin2, asin3):
+                success, message = save_to_github(asin1, asin2, asin3)
+                if success:
                     st.success("✅ Validación exitosa")
                     img_byte_arr.seek(0)
                     with col2:
@@ -295,7 +308,8 @@ def main():
                             type="primary"
                         )
                 else:
-                    st.error("❌ Error en la validación")
+                    st.error(f"❌ Error en la validación: {message}")
+                    st.error("Por favor, verifica las credenciales de GitHub y los permisos del repositorio.")
 
 if __name__ == "__main__":
     main()
